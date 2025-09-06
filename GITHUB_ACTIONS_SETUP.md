@@ -27,6 +27,12 @@ xoxb-your-actual-slack-bot-token-here
 ]
 ```
 
+#### `ARCHIVE_PASSWORD` 
+```
+YourSecurePassword123!
+```
+**Choose a strong password** - you'll need this to extract your archived messages.
+
 ### 2. **Run the Workflow**
 
 1. Go to **Actions** tab in your repository
@@ -52,14 +58,14 @@ xoxb-your-actual-slack-bot-token-here
    - `download-instructions-[run-number]` - Instructions with the password
 
 ### 🔑 Password Information
-- **Password format**: `slack-[run-number]`
-- **Example**: If run number is 123, password is `slack-123`
-- **Where to find run number**: In the workflow URL or instructions file
+- **Password**: Your `ARCHIVE_PASSWORD` secret
+- **Security**: Password is never visible in logs or run history
+- **Remember**: Use the same password you set in repository secrets
 
 ### Method 2: View in Browser
 
 1. **Download the artifacts** (as above)
-2. **Extract the password-protected ZIP** using the password `slack-[run-number]`
+2. **Extract the password-protected ZIP** using your `ARCHIVE_PASSWORD` secret
 3. **Open `viewer.html`** from your local repository
 4. **Drag and drop** any `.jsonl` file from the extracted archive
 
