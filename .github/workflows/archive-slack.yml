@@ -97,14 +97,15 @@ jobs:
         # Install zip with password support
         sudo apt-get update && sudo apt-get install -y zip
         
-        # Create password-protected ZIP
-        # Use run number as password (you'll know this from the workflow run)
+        # Create password-protected ZIP using a secret
+        # Password comes from GitHub secret - only you know it
         cd slack-archive
-        zip -r -P "slack-${{ github.run_number }}" ../slack-messages-protected.zip .
+        zip -r -P "${{ secrets.ARCHIVE_PASSWORD }}" ../slack-messages-protected.zip .
         cd ..
         
-        echo "🔐 Archive created with password: slack-${{ github.run_number }}"
-        echo "📁 Download the protected file and use this password to extract it"
+        echo "🔐 Archive created with password protection"
+        echo "📁 Use your ARCHIVE_PASSWORD secret to extract the files"
+        echo "⚠️  Password is NOT visible in logs for security"
         
     - name: Upload password-protected Slack archive
       uses: actions/upload-artifact@v4
@@ -121,9 +122,9 @@ jobs:
         # 🔐 Your Password-Protected Slack Messages Are Ready!
         
         ## 🔑 IMPORTANT: Password Required
-        **Archive Password:** `slack-${{ github.run_number }}`
+        **Archive Password:** Your `ARCHIVE_PASSWORD` GitHub secret
         
-        ⚠️ **Save this password!** You'll need it to extract your Slack messages.
+        ⚠️ **Use the same password you set in your repository secrets!**
         
         ## 📊 Archive Summary
         - Generated on: $(date)
@@ -145,15 +146,15 @@ jobs:
         ### Step 2: Extract with Password
         **Windows:**
         - Right-click → Extract All
-        - Enter password: `slack-${{ github.run_number }}`
+        - Enter your ARCHIVE_PASSWORD secret
         
         **Mac:**
-        - Double-click the ZIP file
-        - Enter password: `slack-${{ github.run_number }}`
+        - Double-click the ZIP file  
+        - Enter your ARCHIVE_PASSWORD secret
         
         **Linux/Command Line:**
         ```bash
-        unzip -P "slack-${{ github.run_number }}" slack-messages-protected.zip
+        unzip -P "your-archive-password" slack-messages-protected.zip
         ```
         
         ## 🔍 How to View Your Messages:
@@ -194,7 +195,7 @@ jobs:
         - Archive is password-protected for security
         - Only you know the password (from this workflow run)
         - Safe to download even from public repositories
-        - Password is based on run number: `slack-${{ github.run_number }}`
+        - Password is your ARCHIVE_PASSWORD secret (not visible in logs)
         EOF
         
     - name: Upload instructions
