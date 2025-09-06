@@ -15,6 +15,8 @@ A .NET 8 console application that exports Slack channel messages to structured J
 
 ## Setup
 
+For github actions setup [click here](https://github.com/nicolosaullo/SlackChannelReader/blob/main/GITHUB_ACTIONS_SETUP.md)
+
 ### 1. Get Slack Bot Token
 
 1. Go to [Slack API](https://api.slack.com/apps)
