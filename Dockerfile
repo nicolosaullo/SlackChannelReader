@@ -16,7 +16,7 @@ RUN dotnet publish --configuration Release --no-build --output /app/publish \
     --runtime linux-x64 --self-contained false
 
 # Runtime stage
-FROM mcr.microsoft.com/dotnet/runtime:8.0 AS runtime
+FROM mcr.microsoft.com/dotnet/runtime:9.0 AS runtime
 WORKDIR /app
 
 # Create non-root user
