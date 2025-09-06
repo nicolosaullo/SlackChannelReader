@@ -1,0 +1,62 @@
+name: PR Checks
+
+on:
+  pull_request:
+    branches: [ main ]
+    types: [opened, synchronize, reopened]
+
+jobs:
+  validate:
+    name: Validate Changes
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: '8.0.x'
+        
+    - name: Restore dependencies
+      run: dotnet restore
+      
+    - name: Build application
+      run: dotnet build --no-restore --configuration Release
+      
+    - name: Run basic validation
+      run: |
+        echo "✅ Build successful"
+        echo "✅ Dependencies restored"
+        echo "🔍 Checking for common issues..."
+        
+        # Check for secrets in code (basic check)
+        if grep -r "xoxb-" --include="*.cs" --include="*.json" --exclude="appsettings.example.json" . ; then
+          echo "❌ Found potential secrets in code!"
+          exit 1
+        else
+          echo "✅ No obvious secrets found in code"
+        fi
+        
+        # Check for required files
+        if [ ! -f "appsettings.example.json" ]; then
+          echo "❌ Missing appsettings.example.json"
+          exit 1
+        else
+          echo "✅ Configuration template exists"
+        fi
+        
+        echo "🎉 All basic checks passed!"
+        
+    - name: Comment on PR
+      if: success()
+      uses: actions/github-script@v7
+      with:
+        script: |
+          github.rest.issues.createComment({
+            issue_number: context.issue.number,
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            body: '🎉 **PR Checks Passed!** ✅\n\n- ✅ Build successful\n- ✅ Dependencies restored\n- ✅ No obvious security issues\n- ✅ Configuration template exists\n\nThis PR is ready for review! 🚀'
+          })
