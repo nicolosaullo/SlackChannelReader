@@ -1,0 +1,8 @@
+# Slack Channel Reader Cron Jobs
+# Run daily at 2 AM UTC to archive the previous day's messages
+0 2 * * * root cd /app && dotnet SlackChannelReader.dll >> /var/log/cron.log 2>&1
+
+# Run weekly on Sundays at 3 AM UTC for a full week archive
+0 3 * * 0 root cd /app && dotnet SlackChannelReader.dll "$(date -d '7 days ago' '+%Y-%m-%d')" "$(date -d '1 day ago' '+%Y-%m-%d')" >> /var/log/cron.log 2>&1
+
+# Empty line required at end of crontab

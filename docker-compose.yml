@@ -1,0 +1,40 @@
+version: '3.8'
+
+services:
+  slack-reader:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: slack-channel-reader
+    environment:
+      - DOTNET_ENVIRONMENT=Production
+    volumes:
+      # Mount config file (create from appsettings.example.json)
+      - ./appsettings.json:/app/appsettings.json:ro
+      # Mount output directory
+      - ./slack-archive:/app/slack-archive
+    restart: unless-stopped
+    
+  # Optional: For scheduled runs using cron
+  slack-reader-cron:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: slack-channel-reader-cron
+    environment:
+      - DOTNET_ENVIRONMENT=Production
+    volumes:
+      - ./appsettings.json:/app/appsettings.json:ro
+      - ./slack-archive:/app/slack-archive
+      # Mount cron configuration
+      - ./scripts/crontab:/etc/cron.d/slack-reader:ro
+    command: >
+      sh -c "
+        apt-get update && 
+        apt-get install -y cron && 
+        cron && 
+        tail -f /var/log/cron.log
+      "
+    restart: unless-stopped
+    profiles:
+      - scheduled

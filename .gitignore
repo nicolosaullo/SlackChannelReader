@@ -37,8 +37,15 @@ pids/
 appsettings.local.json
 appsettings.json
 
-# Don't ignore the archive folder - we want it in the repo
+# Archive folder - contains actual data, don't commit
 slack-archive/
+
+# Windows batch and PowerShell execution files (these are safe to commit)
+# run-slack-reader.bat
+# run-slack-reader.ps1
+
+# Web viewer - safe to commit
+# viewer.html
 
 # Temporary files
 *.tmp

@@ -1,15 +1,17 @@
 # Slack Channel Reader
 
-A .NET 8 console application that archives Slack channel messages into AI-friendly Markdown format.
+A .NET 8 console application that exports Slack channel messages to structured JSONL format for data analysis and AI processing.
 
 ## Features
 
-- Archives messages from multiple Slack channels
-- Handles message threading (nests replies under root messages)
-- Exports to organized Markdown files by date
-- Supports pagination for large channels
-- Includes rate limiting and retry logic for Slack API
+- Archives messages from multiple Slack channels simultaneously
+- Exports structured data in JSONL format (one JSON object per line)
+- Handles threaded messages with proper threading context
+- Groups messages by month for organized archives
+- Includes comprehensive message metadata and user information
+- Built-in rate limiting and retry logic with exponential backoff
 - Production-ready with dependency injection, logging, and configuration
+- Supports flexible date range filtering
 
 ## Setup
 
@@ -32,7 +34,7 @@ A .NET 8 console application that archives Slack channel messages into AI-friend
 
 ### 3. Configure the Application
 
-Edit `appsettings.json`:
+Copy `appsettings.example.json` to `appsettings.json` and configure:
 
 ```json
 {
@@ -51,19 +53,24 @@ Edit `appsettings.json`:
   },
   "Archive": {
     "OutputPath": "./slack-archive"
+  },
+  "Logging": {
+    "LogLevel": {
+      "Default": "Information",
+      "Microsoft": "Warning",
+      "Microsoft.Hosting.Lifetime": "Information"
+    }
   }
 }
 ```
 
 ## Usage
 
-### Build the Application
+### Build and Run
 
 ```bash
 dotnet build
 ```
-
-### Run Examples
 
 ```bash
 # Archive today's messages from all configured channels
@@ -73,101 +80,102 @@ dotnet run
 dotnet run "2024-01-01" "2024-01-31"
 
 # Archive messages from a specific date to today
-dotnet run "2024-01-01" ""
+dotnet run "2024-01-01"
 ```
 
 ## Output Structure
 
-The application creates this file structure:
+The application creates monthly JSONL files organized by channel:
 
 ```
 slack-archive/
-├── #general/
-│   ├── 2024-01-15.md
-│   ├── 2024-01-16.md
+├── general/
+│   ├── 2024-01.jsonl
+│   ├── 2024-02.jsonl
 │   └── ...
-└── #random/
-    ├── 2024-01-15.md
+└── random/
+    ├── 2024-01.jsonl
     └── ...
 ```
 
-### Markdown Format
+### JSONL Format
 
-Each daily archive includes:
+Each line contains a complete message object with rich metadata:
 
-- Channel name and date header
-- Archive metadata (generation time, message count)
-- Messages in chronological order
-- Threaded replies indented under parent messages
-- User display names and timestamps
-- Clean text formatting (Slack markup converted to Markdown)
-
-Example:
-
-```markdown
-# #general - 2024-01-15
-
-Archive generated on 2024-01-15 10:30:00 UTC
-Total messages: 45
-
----
-
-**John Doe** *(09:15:30)*
-Good morning team! Ready for the sprint review?
-
-  ↳ **Jane Smith** *(09:16:45)*
-  Yes! I have the demo ready.
-
-  ↳ **Bob Wilson** *(09:17:12)*
-  Looking forward to it!
-
-**Alice Johnson** *(10:20:15)*
-Here's the updated project timeline: [Project Timeline](https://docs.example.com/timeline)
+```jsonl
+{"schema_version":"1.0","channel_id":"C1234567890","channel_name":"general","ts":"1705123456.789","ts_iso":"2024-01-13T10:30:56Z","thread_id":"1705123456.789","is_root":true,"message_type":"message","user":"U1234567","user_display_name":"John Doe","actor_user":null,"text":"Good morning team! Ready for the sprint review?","mentions":null,"reply_count":2,"thread_ts":null,"type":"message","subtype":null}
+{"schema_version":"1.0","channel_id":"C1234567890","channel_name":"general","ts":"1705123567.123","ts_iso":"2024-01-13T10:32:47Z","thread_id":"1705123456.789","is_root":false,"message_type":"message","user":"U7654321","user_display_name":"Jane Smith","actor_user":null,"text":"Yes! I have the demo ready.","mentions":null,"reply_count":null,"thread_ts":"1705123456.789","type":"message","subtype":null}
 ```
+
+### Message Schema
+
+Each message includes:
+
+- **schema_version**: Format version for compatibility
+- **channel_id/channel_name**: Channel identification
+- **ts/ts_iso**: Unix timestamp and ISO 8601 formatted time
+- **thread_id**: Thread identifier (root message timestamp)
+- **is_root**: Whether this is a root message or reply
+- **message_type**: Categorized message type (message, member_joined_channel, etc.)
+- **user/user_display_name**: User ID and resolved display name
+- **text**: Message content
+- **mentions**: Array of mentioned user IDs (if any)
+- **reply_count**: Number of replies to this message
+- **thread_ts**: Thread timestamp for replies
+
+## Architecture
+
+The application uses clean architecture with dependency injection:
+
+- **Program.cs**: Application entry point and DI configuration
+- **Services/SlackClient.cs**: Slack API client with retry logic and user caching
+- **Services/JsonWriter.cs**: JSONL export functionality  
+- **Services/ArchiveOrchestrator.cs**: Coordinates parallel channel archiving
+- **Models/SlackMessage.cs**: Message data model with computed properties
+- **Configuration/**: Strongly-typed configuration classes
 
 ## Configuration Options
 
-### Slack Options
+### Slack Configuration
+- **Token**: Slack Bot User OAuth Token (required)
+- **Channels**: Array of channel configurations
+  - **Id**: Slack channel ID (e.g., C1234567890)
+  - **Name**: Human-readable name for file organization
 
-- `Token`: Your Slack Bot User OAuth Token
-- `Channels`: Array of channels to archive
-  - `Id`: Slack channel ID (e.g., C1234567890)
-  - `Name`: Human-readable channel name for file organization
+### Archive Configuration
+- **OutputPath**: Output directory path (default: "./slack-archive")
 
-### Archive Options
-
-- `OutputPath`: Directory where archives are saved (default: "./slack-archive")
+### Logging Configuration
+- Configurable log levels for different components
+- Console logging enabled by default
 
 ## Error Handling
 
-The application includes:
+- **Rate Limiting**: Respects Slack API rate limits with retry-after headers
+- **Exponential Backoff**: Automatic retry with increasing delays
+- **User Caching**: Reduces API calls by caching user information
+- **Graceful Degradation**: Continues processing if individual messages fail
+- **Comprehensive Logging**: Detailed logging for monitoring and troubleshooting
 
-- Automatic retry with exponential backoff for API failures
-- Rate limiting handling (waits for retry-after headers)
-- Comprehensive logging for troubleshooting
-- Graceful handling of missing users/channels
+## Data Features
 
-## Adding New Channels
+- **Thread Preservation**: Maintains complete thread context
+- **User Resolution**: Resolves user IDs to display names
+- **Message Classification**: Categorizes system messages and regular messages
+- **Mention Extraction**: Identifies and extracts user mentions
+- **Timestamp Normalization**: Provides both Unix and ISO timestamps
 
-To archive additional channels:
+## Use Cases
 
-1. Get the channel ID from Slack
-2. Add it to the `Channels` array in `appsettings.json`
-3. Run the application
+- Data analysis of Slack communications
+- AI/ML training data preparation  
+- Compliance and archival requirements
+- Migration to other platforms
+- Analytics and reporting
 
 ## Limitations
 
-- Only archives public channels (private channels require additional permissions)
-- File attachments are not downloaded (only links are preserved)
-- Slack reactions/emojis are not preserved in the current version
-- Very large channels may take time to process due to API rate limits
-
-## Development
-
-The application follows clean architecture principles:
-
-- **Services/SlackClient.cs**: Handles all Slack API interactions
-- **Services/MarkdownWriter.cs**: Converts messages to Markdown format
-- **Services/ArchiveOrchestrator.cs**: Coordinates the archiving process
-- **Models/**: Data structures for Slack API responses
-- **Configuration/**: Configuration classes for dependency injection
+- Public channels only (private channels need additional permissions)
+- File attachments referenced by URL only (not downloaded)
+- Emoji reactions not captured
+- Large channels process sequentially due to API rate limits
