@@ -1,0 +1,158 @@
+name: Archive Slack Messages
+
+on:
+  workflow_dispatch:
+    inputs:
+      from_date:
+        description: 'Start date (YYYY-MM-DD, optional)'
+        required: false
+        default: ''
+        type: string
+      to_date:
+        description: 'End date (YYYY-MM-DD, optional)'
+        required: false
+        default: ''
+        type: string
+
+jobs:
+  archive-slack:
+    name: Archive Slack Messages
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: '8.0.x'
+        
+    - name: Restore and build
+      run: |
+        dotnet restore
+        dotnet build --configuration Release
+        
+    - name: Setup configuration
+      run: |
+        cat > appsettings.json << 'EOF'
+        {
+          "Slack": {
+            "Token": "${{ secrets.SLACK_BOT_TOKEN }}",
+            "Channels": ${{ secrets.SLACK_CHANNELS }}
+          },
+          "Archive": {
+            "OutputPath": "./slack-archive"
+          },
+          "Logging": {
+            "LogLevel": {
+              "Default": "Information",
+              "Microsoft": "Warning",
+              "Microsoft.Hosting.Lifetime": "Information"
+            }
+          }
+        }
+        EOF
+        
+    - name: Run Slack Channel Reader
+      run: |
+        args=""
+        if [ -n "${{ inputs.from_date }}" ]; then
+          args="${{ inputs.from_date }}"
+          echo "📅 From date: ${{ inputs.from_date }}"
+        fi
+        if [ -n "${{ inputs.to_date }}" ]; then
+          args="$args ${{ inputs.to_date }}"
+          echo "📅 To date: ${{ inputs.to_date }}"
+        fi
+        
+        if [ -z "$args" ]; then
+          echo "📅 Archiving today's messages"
+        fi
+        
+        echo "🚀 Starting Slack archive..."
+        dotnet run --configuration Release -- $args
+        
+    - name: Show archive summary
+      run: |
+        echo "📊 Archive Summary:"
+        if [ -d "slack-archive" ]; then
+          find slack-archive -name "*.jsonl" | while read file; do
+            lines=$(wc -l < "$file")
+            size=$(du -h "$file" | cut -f1)
+            echo "  📁 $(basename "$file"): $lines messages ($size)"
+          done
+          
+          total_messages=$(find slack-archive -name "*.jsonl" -exec wc -l {} + | tail -1 | awk '{print $1}' 2>/dev/null || echo "0")
+          file_count=$(find slack-archive -name "*.jsonl" | wc -l)
+          
+          echo ""
+          echo "✅ Total: $total_messages messages in $file_count files"
+        else
+          echo "❌ No archive files were created"
+        fi
+        
+    - name: Upload Slack JSONL files
+      uses: actions/upload-artifact@v4
+      if: always()
+      with:
+        name: slack-messages-${{ github.run_number }}
+        path: slack-archive/
+        retention-days: 90
+        if-no-files-found: error
+        
+    - name: Create download instructions
+      run: |
+        cat > download-instructions.md << 'EOF'
+        # 📥 Your Slack Messages Are Ready!
+        
+        ## 📊 Archive Summary
+        Generated on: $(date)
+        Run number: ${{ github.run_number }}
+        
+        ## 📁 Files in this archive:
+        $(find slack-archive -name "*.jsonl" | while read file; do
+            lines=$(wc -l < "$file")
+            echo "- **$(basename "$file")**: $lines messages"
+        done)
+        
+        ## 🔍 How to view your messages:
+        
+        ### Option 1: Web Viewer (Recommended)
+        1. Download and extract this artifact
+        2. Open `viewer.html` from your repository in a web browser
+        3. Drag and drop any `.jsonl` file to view messages with a nice interface
+        
+        ### Option 2: Command Line
+        ```bash
+        # View raw JSONL data
+        cat channel-name/2024-01.jsonl | jq .
+        
+        # Count messages
+        wc -l channel-name/2024-01.jsonl
+        
+        # Search for specific text
+        grep -i "keyword" channel-name/2024-01.jsonl
+        ```
+        
+        ### Option 3: Import into tools
+        - Import into Excel/Google Sheets
+        - Load into Python pandas: `pd.read_json('file.jsonl', lines=True)`
+        - Process with jq for JSON manipulation
+        
+        ## 📋 File Format
+        Each line is a JSON object with message data:
+        - `text`: Message content
+        - `user_display_name`: Who sent it
+        - `ts_iso`: When it was sent
+        - `channel_name`: Which channel
+        - `is_root`: True if root message, false if reply
+        EOF
+        
+    - name: Upload instructions
+      uses: actions/upload-artifact@v4
+      if: always()
+      with:
+        name: download-instructions-${{ github.run_number }}
+        path: download-instructions.md
+        retention-days: 90
