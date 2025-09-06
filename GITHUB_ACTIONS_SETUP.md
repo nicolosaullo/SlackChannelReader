@@ -41,27 +41,33 @@ xoxb-your-actual-slack-bot-token-here
 
 ## 📥 How to Get Your Results
 
-### Method 1: Download Artifacts (Recommended)
+### Method 1: Download Password-Protected Artifacts (Recommended)
 
 1. **Wait for workflow to complete** (green checkmark)
 2. **Click on the workflow run**
-3. **Scroll down to "Artifacts"** section
-4. **Download**:
-   - `slack-archive-[run-number]` - Contains all your JSONL files
-   - `archive-summary-[run-number]` - Contains statistics and summary
+3. **Note the run number** (you'll need this for the password!)
+4. **Scroll down to "Artifacts"** section
+5. **Download**:
+   - `slack-messages-protected-[run-number]` - Password-protected ZIP with your JSONL files
+   - `download-instructions-[run-number]` - Instructions with the password
+
+### 🔑 Password Information
+- **Password format**: `slack-[run-number]`
+- **Example**: If run number is 123, password is `slack-123`
+- **Where to find run number**: In the workflow URL or instructions file
 
 ### Method 2: View in Browser
 
 1. **Download the artifacts** (as above)
-2. **Extract the files** to a folder
+2. **Extract the password-protected ZIP** using the password `slack-[run-number]`
 3. **Open `viewer.html`** from your local repository
-4. **Drag and drop** any `.jsonl` file from the downloaded archive
+4. **Drag and drop** any `.jsonl` file from the extracted archive
 
 ## 📊 What You'll Get
 
 ### Archive Files Structure
 ```
-slack-archive-123/
+slack-messages-protected.zip (password-protected)
 ├── general/
 │   ├── 2024-01.jsonl
 │   └── 2024-02.jsonl
@@ -70,10 +76,11 @@ slack-archive-123/
 ```
 
 ### Summary Report
-The `archive-summary.md` contains:
+The `download-instructions-[run-number].md` contains:
+- 🔑 **Password**: The extraction password for your archive
 - 📈 **Statistics**: Total messages, files created
 - 📁 **File breakdown**: Messages per file
-- 🔍 **Instructions**: How to view the data
+- 🔍 **Instructions**: How to extract and view the data
 
 ## 🎯 Use Cases
 
