@@ -1,0 +1,45 @@
+# Build results
+bin/
+obj/
+out/
+
+# User-specific files
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
+
+# IDE files
+.vscode/
+.vs/
+*.swp
+*.swo
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Logs
+*.log
+logs/
+
+# Runtime data
+pids/
+*.pid
+*.seed
+
+# Local configuration (use appsettings.example.json as template)
+appsettings.local.json
+appsettings.json
+
+# Don't ignore the archive folder - we want it in the repo
+slack-archive/
+
+# Temporary files
+*.tmp
+*.temp
