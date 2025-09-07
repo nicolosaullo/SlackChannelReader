@@ -181,3 +181,4 @@ The application uses clean architecture with dependency injection:
 - File attachments referenced by URL only (not downloaded)
 - Emoji reactions not captured
 - Large channels process sequentially due to API rate limits
+
