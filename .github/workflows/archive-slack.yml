@@ -33,8 +33,29 @@ jobs:
         dotnet restore
         dotnet build --configuration Release
         
+    - name: Check required secrets
+      run: |
+        echo "🔍 Checking required secrets..."
+        if [ -z "${{ secrets.SLACK_BOT_TOKEN }}" ]; then
+          echo "❌ SLACK_BOT_TOKEN secret is not set"
+          echo "Please add your Slack bot token to repository secrets"
+          exit 1
+        fi
+        if [ -z "${{ secrets.SLACK_CHANNELS }}" ]; then
+          echo "❌ SLACK_CHANNELS secret is not set"
+          echo "Please add your channel configuration to repository secrets"
+          exit 1
+        fi
+        if [ -z "${{ secrets.ARCHIVE_PASSWORD }}" ]; then
+          echo "❌ ARCHIVE_PASSWORD secret is not set"
+          echo "Please add your archive password to repository secrets"
+          exit 1
+        fi
+        echo "✅ All required secrets are configured"
+        
     - name: Setup configuration
       run: |
+        echo "🔧 Creating configuration file..."
         cat > appsettings.json << 'EOF'
         {
           "Slack": {
@@ -53,6 +74,7 @@ jobs:
           }
         }
         EOF
+        echo "✅ Configuration file created"
         
     - name: Run Slack Channel Reader
       run: |
@@ -94,8 +116,38 @@ jobs:
         
     - name: Create password-protected archive
       run: |
+        echo "🔧 Preparing archive creation..."
+        
         # Install zip with password support
         sudo apt-get update && sudo apt-get install -y zip
+        
+        # Check if slack-archive directory exists
+        if [ ! -d "slack-archive" ]; then
+          echo "❌ No slack-archive directory found"
+          echo "This usually means:"
+          echo "  - No messages were found in the specified date range"
+          echo "  - Slack API authentication failed"
+          echo "  - Network connectivity issues"
+          echo ""
+          echo "Creating empty archive with error message..."
+          mkdir -p slack-archive
+          echo "No messages were archived. Check your configuration and date range." > slack-archive/README.txt
+        fi
+        
+        # Check if any files were created
+        file_count=$(find slack-archive -name "*.jsonl" | wc -l)
+        if [ "$file_count" -eq 0 ]; then
+          echo "⚠️  No JSONL files found in slack-archive directory"
+          echo "Archive will contain explanation instead of messages"
+          echo ""
+          echo "Possible causes:" > slack-archive/NO_MESSAGES_FOUND.txt
+          echo "- No messages in the specified date range" >> slack-archive/NO_MESSAGES_FOUND.txt
+          echo "- Invalid channel IDs in SLACK_CHANNELS secret" >> slack-archive/NO_MESSAGES_FOUND.txt
+          echo "- Slack bot doesn't have access to the channels" >> slack-archive/NO_MESSAGES_FOUND.txt
+          echo "- API rate limiting or network issues" >> slack-archive/NO_MESSAGES_FOUND.txt
+        else
+          echo "✅ Found $file_count JSONL file(s) to archive"
+        fi
         
         # Create password-protected ZIP using a secret
         # Password comes from GitHub secret - only you know it
