@@ -89,11 +89,20 @@ jobs:
         fi
         
         if [ -z "$args" ]; then
-          echo "📅 Archiving today's messages"
+          echo "📅 No dates specified - archiving last 30 days"
         fi
         
-        echo "🚀 Starting Slack archive..."
-        dotnet run --configuration Release -- $args
+        echo "🚀 Starting Slack archive with args: [$args]"
+        echo "Command: dotnet run --configuration Release -- $args"
+        
+        # Run with proper argument handling
+        if [ -z "$args" ]; then
+          dotnet run --configuration Release
+        else
+          dotnet run --configuration Release -- $args
+        fi
+        
+        echo "✅ Slack archive command completed"
         
     - name: Show archive summary
       run: |
